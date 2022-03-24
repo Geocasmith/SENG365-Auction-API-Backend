@@ -15,4 +15,5 @@ module.exports = (app: Express) => {
 
     app.route(rootUrl + '/executeSql')
         .post(backdoor.executeSql);
+
 };
