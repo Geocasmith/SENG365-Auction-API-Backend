@@ -2,7 +2,7 @@ import {getPool} from "../../config/db";
 import Logger from "../../config/logger";
 import * as passwords from "../models/passwords.model"
 import {ResultSetHeader} from "mysql2";
-import {compare} from "bcrypt";
+import bcrypt from "bcrypt";
 
 const getOne = async (id: number): Promise<any> => {
     Logger.info(`Getting one user from the database`);
@@ -10,7 +10,7 @@ const getOne = async (id: number): Promise<any> => {
     const query = 'select * from user where id = ?';
     const [rows] = await conn.query(query, [id]);
     conn.release();
-    return rows;
+    return rows[0];
 };
 
 const insert = async (firstName: string, lastName: string, email: string, password: string): Promise<any> => {
@@ -23,29 +23,38 @@ const insert = async (firstName: string, lastName: string, email: string, passwo
     return rows;
 };
 
-const login = async (email: string, password: string, xauthorization:string): Promise<any> => {
+const login = async (email: string, password: string, token:string): Promise<any> => {
     Logger.info(`Logging in and checking if user in database`);
+    // Gets user info from db
     const conn = await getPool().getConnection();
     const query = 'select * from user where email = ?';
     const [rows] = await conn.query(query, [email]);
     conn.release();
-    if (rows.length === 0) {// if no user found
+
+    // if no user found
+    if (rows.length === 0) {
         return null;
     }
-    if(compare(password, rows[0].password)){// if user found and password matches
-        // sets the auth_token
-        const updateQuery = 'update user set auth_token = ? where id = ?';
-        const [updateRows] = await conn.query(updateQuery, [xauthorization, rows[0].id]);
-        return updateRows;
+    // if user found and password matches
+    if(await bcrypt.compare(password, rows[0].password)) {
+        Logger.info(`Passwords match`);
+        await passwords.createAuth(email,token); // sets the auth_token
+        const user = await passwords.getUserFromToken(token);
+        return user;
     }
-
-//    bcryot compare
-//    checkauth in request headers in passowrd modl
-    // select star where auth
-    // check id in return
-
+    // if password doesn't match
+    return null;
+};
+// gets user from db who has the token and sets the token to null
+const logout = async (token:string): Promise<any> => {
+    Logger.info(`Logging out user`);
+    const conn = await getPool().getConnection();
+    const query = 'update user set auth_token = null where auth_token = ?';
+    const [rows] = await conn.query(query, [token]);
+    conn.release();
+    return rows;
 };
 
 
 
-export {getOne, insert, login}
+export {getOne, insert, login, logout}
