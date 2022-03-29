@@ -29,13 +29,31 @@ const createAuth = async(email: string, token: string): Promise<any> => {
 };
 
 // returns rows where authtoken matches, none if no match
-const getUserFromToken = async(xAuthorization:string):Promise<string>=>{
+const getUserFromToken = async(xAuthorization:string):Promise<any>=>{
     Logger.info("Checking if authtoken exists");
     const conn = await getPool().getConnection();
     const query = 'select * from user where auth_token = ?';
     const [rows] = await conn.query(query,[xAuthorization]);
     conn.release()
-    return rows[0]
+    return rows
 };
 
-export {hash,compare,checkAuth,getUserFromToken,createAuth};
+const authExists = async (xAuthorization: string): Promise<boolean> => {
+    Logger.info("Checking if authtoken exists");
+    const conn = await getPool().getConnection();
+    const query = 'select * from user where auth_token = ?';
+    const [rows] = await conn.query(query,[xAuthorization]);
+    conn.release()
+    return rows.length > 0
+};
+const passwordMatchesToken = async (xAuthorization: string, password: string): Promise<boolean> =>{
+    const conn = await getPool().getConnection();
+    const query = 'select * from user where auth_token = ?';
+    const [rows] = await conn.query(query,[xAuthorization]);
+    if(await bcrypt.compare(password, rows[0].password)) {
+        return true
+    }
+    return false
+};
+
+export {hash,compare,checkAuth,getUserFromToken,createAuth,authExists,passwordMatchesToken};

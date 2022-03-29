@@ -10,7 +10,7 @@ const getOne = async (id: number): Promise<any> => {
     const query = 'select * from user where id = ?';
     const [rows] = await conn.query(query, [id]);
     conn.release();
-    return rows[0];
+    return rows;
 };
 
 const insert = async (firstName: string, lastName: string, email: string, password: string): Promise<any> => {
@@ -55,6 +55,21 @@ const logout = async (token:string): Promise<any> => {
     return rows;
 };
 
+const alter = async(id:string, firstName:string, lastName:string, email:string, password:string, currentPassword: string): Promise<any> => {
+    Logger.info(`Updating user in database`);
+    const conn = await getPool().getConnection();
+    const query = 'update user set first_name = ?, last_name = ?, email = ?, password = ? where id = ?';
+    const [rows] = await conn.query(query, [firstName, lastName, email, password, id]);
+    conn.release();
+    return rows;
+};
+const emailExists = async (email: string): Promise<boolean> => {
+    Logger.info(`Checking if email exists in database`);
+    const conn = await getPool().getConnection();
+    const query = 'select * from user where email = ?';
+    const [rows] = await conn.query(query, [email]);
+    conn.release();
+    return rows.length > 0;
+};
 
-
-export {getOne, insert, login, logout}
+export {getOne, insert, login, logout,emailExists,alter}

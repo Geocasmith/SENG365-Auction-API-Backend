@@ -10,8 +10,8 @@ module.exports = (app: Express) => {
         .post(users.login);
     app.route(rootUrl + '/users/logout')
         .post(users.logout);
-    app.route(rootUrl + '/users/{id}')
+    app.route(rootUrl + '/users/:id')
         .get(users.viewUser)
-        // .patch(users.updateUser)
+        .patch(users.editUser)
 
 }
