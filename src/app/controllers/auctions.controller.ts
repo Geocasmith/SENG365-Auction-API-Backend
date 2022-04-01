@@ -13,10 +13,10 @@ const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
 const create = async (req: Request, res: Response): Promise<void> => {
     // 400 if title, description, endDate or categoryID is missing from the body. 400 if endDate is in the past.
     // 401 if the user is not logged in.
-    if (!await auth.isAuthorized(req, res)) {
-        Logger.info("NOT AUTHENTICATED");
-        return;
-    }
+    // if (!await auth.isAuthorized(req, res)) {
+    //     Logger.info("NOT AUTHENTICATED");
+    //     return;
+    // }
     try {
         // if title, description, endDate or categoryID is missing from the body
         if (!req.body.hasOwnProperty("title") || !req.body.hasOwnProperty("description") || !req.body.hasOwnProperty("endDate") || !req.body.hasOwnProperty("categoryID")) {

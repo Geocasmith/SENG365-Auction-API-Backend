@@ -16,7 +16,7 @@ const register = async (req: Request, res: Response) => {
         } else {
             const result = await users.insert(req.body.firstName, req.body.lastName, req.body.email, req.body.password);
             Logger.http('User created');
-            res.status( 201 ).send({"user_id": result.insertId} );
+            res.status( 201 ).send({"userId": parseInt(result.insertId,10)} );
         }
 
 
@@ -38,7 +38,7 @@ const login = async (req: Request, res: Response) => {
             if (result==null){
                 res.status(400).send('Incorrect login details, user not found');
             }else{
-                res.status(200).send({"userId": result.id,"token": result.auth_token});
+                res.status(200).send({"userId": result[0].id,"token": result[0].auth_token});
             }
         }
     }catch (err){
@@ -119,20 +119,13 @@ const editUser = async(req: Request, res: Response) => {
 const logout = async (req:Request, res: Response): Promise<void> => {
     Logger.http('Logging out user');
     try {
-        const xAuth = req.header("X-Authorization")
-        // check if xAuth is undefined
-        if(xAuth === undefined){
-            Logger.http('X-Authorization header not provided');
-            res.status(401).send('Bad request');
-        } else {
-            const result = await users.logout(req.header("X-Authorization"));
-
-            if (result.affectedRows === 0) {
-                Logger.http('No matching auth token in db')
-                res.status(401).send('Unauthorized')
-            }
-            res.status(200).send('OK');
+        const result = await users.logout(req.header("X-Authorization"));
+        if (result.affectedRows === 0) {
+            Logger.http('No matching auth token in db')
+            res.status(401).send('Unauthorized')
         }
+        res.status(200).send('OK');
+
     }catch (err){
         Logger.error(err);
         res.status(501).send(err);
