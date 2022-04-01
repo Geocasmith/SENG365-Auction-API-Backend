@@ -7,3 +7,4 @@ export default (req:Request, res:Response, next: () => void) => {
     next();
 };
 // Make methods in here which will be used in the routes
+// Checks the body of the request has the properties in the list in the paramerters (used to check if body is complete)

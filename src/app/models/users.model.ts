@@ -4,7 +4,7 @@ import * as passwords from "../models/passwords.model"
 import {ResultSetHeader} from "mysql2";
 import bcrypt from "bcrypt";
 
-const getOne = async (id: number): Promise<any> => {
+const getOne = async (id: number): Promise<User[]> => {
     Logger.info(`Getting one user from the database`);
     const conn = await getPool().getConnection();
     const query = 'select * from user where id = ?';
@@ -23,7 +23,7 @@ const insert = async (firstName: string, lastName: string, email: string, passwo
     return rows;
 };
 
-const login = async (email: string, password: string, token:string): Promise<any> => {
+const login = async (email: string, password: string, token:string): Promise<User[]> => {
     Logger.info(`Logging in and checking if user in database`);
     // Gets user info from db
     const conn = await getPool().getConnection();

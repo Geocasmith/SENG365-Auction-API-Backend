@@ -29,7 +29,7 @@ const createAuth = async(email: string, token: string): Promise<any> => {
 };
 
 // returns rows where authtoken matches, none if no match
-const getUserFromToken = async(xAuthorization:string):Promise<any>=>{
+const getUserFromToken = async(xAuthorization:string):Promise<User[]>=>{
     Logger.info("Checking if authtoken exists");
     const conn = await getPool().getConnection();
     const query = 'select * from user where auth_token = ?';
@@ -37,7 +37,14 @@ const getUserFromToken = async(xAuthorization:string):Promise<any>=>{
     conn.release()
     return rows
 };
-
+const getUserIDFromToken = async(xAuthorization:string):Promise<number>=>{
+    Logger.info("Getting user ID from token");
+    const conn = await getPool().getConnection();
+    const query = 'select id from user where auth_token = ?';
+    const [rows] = await conn.query(query,[xAuthorization]);
+    conn.release()
+    return parseInt(rows[0].id,10)
+};
 const tokenExists = async (xAuthorization: string): Promise<boolean> => {
     Logger.info("Checking if authtoken exists");
     const conn = await getPool().getConnection();
@@ -56,4 +63,4 @@ const passwordMatchesToken = async (xAuthorization: string, password: string): P
     return false
 };
 
-export {hash,compare,checkAuth,getUserFromToken,createAuth,tokenExists,passwordMatchesToken};
+export {hash,compare,checkAuth,getUserFromToken,createAuth,tokenExists,passwordMatchesToken,getUserIDFromToken};

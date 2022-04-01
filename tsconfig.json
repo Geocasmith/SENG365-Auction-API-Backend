@@ -4,6 +4,7 @@
     "target": "es6",
     "rootDir": "./src/",
     "outDir": "dist",
+    "typeRoots": ["@types"],
     "esModuleInterop": true,
     "noImplicitAny": true,
     "resolveJsonModule":true,
