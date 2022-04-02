@@ -18,6 +18,7 @@ const resetDb = async (): Promise<any> => {
 
     const files = await fs.readdir(imageDirectory);
     for (const file of files) {
+        //HOW TO DELETE PHOTO HERE
         if (file !== '.gitkeep') promises.push(fs.unlink(imageDirectory + file));  // sync call to delete photo
     }
 

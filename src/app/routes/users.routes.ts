@@ -14,6 +14,6 @@ module.exports = (app: Express) => {
         .post(auth.isAuthorized, users.logout);
     app.route(rootUrl + '/users/:id')
         .get(auth.isAuthorized,users.viewUser)
-        .patch(auth.isAuthorized,auth.hasPermissions,users.editUser)
+        .patch(auth.isAuthorized,auth.hasPermissions,users.editUser);
 
 }

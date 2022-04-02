@@ -66,7 +66,7 @@ const editUser = async(req: Request, res: Response) => {
     try {
         // Checks if user is logged in (token is valid)
         const xAuth = req.header("X-Authorization")
-
+        const body = req.body;
         // check if email valid and passwords match
         if(!(req.body.email.includes("@")) || ! await passwords.passwordMatchesToken(req.body.currentPassword, xAuth) || await users.emailExists(req.body.email)){
             res.status(400).send('Bad request');
@@ -95,7 +95,11 @@ const logout = async (req:Request, res: Response): Promise<void> => {
     }
 };
 
+/**
+ * USER IMAGES
+ */
+const getImage = async (req:Request, res: Response): Promise<void> => {
 
-
+}
 
 export {register,login,logout,viewUser,editUser}

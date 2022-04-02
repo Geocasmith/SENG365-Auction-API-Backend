@@ -28,7 +28,7 @@ const hasPermissions = async(req: Request, res: Response, next: NextFunction): P
 const isAuctionOwner = async(req: Request, res: Response, next: NextFunction): Promise<void> =>{
     const seller = await auctions.getSellerfromAuctionID(parseInt(req.params.id,10));
     if(seller.length === 0){
-        res.status(404).send("Not found");
+        res.status(404).send("Auction not found");
     }
     else if(seller[0].seller_id !== req.userID){
         res.status(403).send("Forbidden");
