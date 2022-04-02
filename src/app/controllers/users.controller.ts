@@ -97,4 +97,5 @@ const logout = async (req:Request, res: Response): Promise<void> => {
 
 
 
+
 export {register,login,logout,viewUser,editUser}
