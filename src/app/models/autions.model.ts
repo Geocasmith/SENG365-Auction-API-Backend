@@ -1,7 +1,46 @@
+import {Request, Response} from "express";
 import {getPool} from "../../config/db";
 import Logger from "../../config/logger";
 import * as passwords from "../models/passwords.model"
 
+const getPaginated = async (req:Request) => {
+    // Initialises query, joins on auction id
+    const query = 'SELECT * FROM `auction` JOIN `auction_bid` on `auction`.`id`=`auction_bid`.`auction_id`'
+    // Creates an empty list of strings called whereQuery and appends clauses to it if they exist
+    const whereQuery = []
+    // If search provided
+    if(req.params.search){
+        // Add search to whereQuery
+        whereQuery.push(`like '%${req.params.search}%' or description like '%${req.params.search}%'`)
+    }
+    // If categoryIds provided
+    if(req.params.categoryIds){
+        // Gets all categories in categoryIds and writes them in a string to put in an IN statement
+        let categories = ''
+        for(let i = 0; i<req.params.categoryIds.length; i++){
+            categories = categories + `${req.params.categoryIds[i]}`
+            if(i!==req.params.categoryIds.length-1){
+                categories = categories + ','
+            }
+        }
+        whereQuery.push(`category_id in (${categories})`)
+    }
+    // If sellerId provided
+    if(req.params.sellerId){
+        whereQuery.push(`seller_id = ${req.params.sellerId}`)
+    }
+    // If bidderId provided
+    if(req.params.bidderId){
+        whereQuery.push(`where user_id = ${req.params.bidderId}`)
+    }
+
+    // Creates the wherequery string
+    const whereQueryString = ' where '+ whereQuery.join(' and ')
+    Logger.info(query + whereQueryString)
+
+    const conn = await getPool().getConnection();
+
+};
 const insert = async (username: string) : Promise<any> => {
     Logger.info(`Adding user ${username} to the database`);
 }
@@ -81,4 +120,4 @@ const createBid = async(auctionId:number, userId:number, amount:number): Promise
     return rows;
 
 }
-export{insert,getCategory,create,remove,getOne,getSellerfromAuctionID,getCategories,getAllBids,createBid,update}
+export{insert,getCategory,create,remove,getOne,getSellerfromAuctionID,getCategories,getAllBids,createBid,update,getPaginated}

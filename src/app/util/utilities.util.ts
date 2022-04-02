@@ -1,7 +1,10 @@
 import {Request, Response} from "express";
 import * as auctions from '../models/autions.model';
+import * as users from '../models/users.model';
+
 
 import Logger from "../../config/logger";
+import * as images from "../models/images.model";
 
 // Goes through the request body and checks if all of the required fields are present. Required fields are given in the parameter.
 const bodyHasRequiredProperties = async (req:Request, res:Response, properties: string[]): Promise<boolean> => {
@@ -24,6 +27,22 @@ const auctionExists = async (req: Request, res: Response): Promise<boolean> => {
         // If auction not found return 404 or return details of the auction
         if (auction.length === 0) {
             res.status(404).send("Auction Not Found");
+            return false;
+        }
+    }
+    return true;
+};
+const userExists = async (req: Request, res: Response): Promise<boolean> => {
+    // Checks if there is an id in the parameters and if its a number
+    if(req.params.id === undefined || isNaN(parseInt(req.params.id, 10))) {
+        res.status(404).send("4001 Bad Request, id is missing from the parameters");
+        return false;
+    }else{
+        // Gets the auction matching the id, returns 404 if not found
+        const user = await users.getOne(parseInt(req.params.id, 10));
+        // If auction not found return 404 or return details of the auction
+        if (user.length === 0) {
+            res.status(404).send("User Not Found");
             return false;
         }
     }
@@ -55,4 +74,19 @@ const categoryExists = async (req: Request, res: Response): Promise<boolean> => 
     }
     return true;
 };
-export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists}
+
+const userHasImage = async (req: Request, res: Response): Promise<boolean> => {
+    const result = await images.getUserImages(parseInt(req.params.id, 10));
+    if (result.length === 0) { // No user found
+        res.status(404).send('No user found');
+        return false;
+    } else {
+        // If image null in db then return 404
+        if (result[0].image_filename === null) {
+            res.status(404).send('User image is null');
+            return false;
+        }
+        return true;
+    }
+};
+export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists,userExists,userHasImage}

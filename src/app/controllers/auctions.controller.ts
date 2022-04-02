@@ -6,10 +6,13 @@ import * as passwords from "../models/passwords.model"
 import * as auctions from '../models/autions.model';
 import * as util from "../util/utilities.util";
 import {categoryExists} from "../util/utilities.util";
+import {getPaginated} from "../models/autions.model";
 
 
 const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
-    res.status(200).send("hi");
+    // TODO PARAMS UNDEFINED BECAUSE ROUTE NOT DONE PROPERLY WITH PARAMS
+    const search = req.params.q;
+    const response = await auctions.getPaginated(req);
 }
 // 400 if title, description, endDate or categoryID is missing from the body. 400 if endDate is in the past.
 // 401 if the user is not logged in.

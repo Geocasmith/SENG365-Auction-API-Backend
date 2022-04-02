@@ -9,12 +9,15 @@ export default () => {
     app.use(allowCrossOriginRequestsMiddleware);
     app.use(bodyParser.json());
     app.use(bodyParser.raw({ type: 'text/plain' }));  // for the /executeSql endpoint
-
+    app.use(bodyParser.urlencoded({
+        extended: true
+    }));
     // DEBUG (you can remove these)
     app.use((req, res, next) => {
         Logger.http(`##### ${req.method} ${req.path} #####`);
         next();
     });
+    app.use(express.urlencoded());
 
     app.get('/', (req, res) =>{
         res.send({ 'message': 'Hello World!' })

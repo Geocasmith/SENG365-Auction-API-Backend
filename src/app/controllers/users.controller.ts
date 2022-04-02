@@ -1,10 +1,22 @@
 import {Request, Response} from "express";
 import Logger from '../../config/logger';
 import * as users from '../models/users.model';
+import * as images from '../models/images.model';
 import * as passwords from "../models/passwords.model"
 import randtoken from 'rand-token';
+import fs from 'mz/fs';
+const imageDirectory = './storage/images/';
+
+
+const mimeTypes = {
+    "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif"
+};
 import {getUserFromToken} from "../models/passwords.model";
 import * as util from "../util/utilities.util";
+import mime from "mime";
 
 // TODO check if user exists
 const register = async (req: Request, res: Response) => {
@@ -99,7 +111,72 @@ const logout = async (req:Request, res: Response): Promise<void> => {
  * USER IMAGES
  */
 const getImage = async (req:Request, res: Response): Promise<void> => {
+    try {
+        if(await util.userExists(req, res)){
+            // Gets image path from userID
+            if(util.userHasImage(req,res)){
+                // Gets the image path from db
+                const result = await images.getUserImages(parseInt(req.params.id,10));
+                const path = imageDirectory+result[0].image_filename;
 
+                    // Checks if image exists
+                    if(fs.existsSync(path)) {
+
+                        // Gets the image from the path and sends it in the response
+                        const image = await fs.readFile(path);
+                        // Gets the content type from the image path
+                        const extension = result[0].image_filename.split('.').pop()
+                        // Writes the image to the response
+                        // @ts-ignore
+                        await res.writeHead(200, {'Content-Type': mimeTypes[extension] });
+                        res.write(image);
+                        res.end();
+
+                    }else{
+                        res.status(404).send('User image not found');
+                    }
+            }
+        }
+
+    }catch (err){
+        Logger.error(err);
+        res.status(501).send(err);
+    }
+}
+const uploadImage = async (req:Request, res: Response): Promise<void> => {
+    // TODO check if no image of same name exists
+    Logger.info('Uploading image');
+    // let sendCode = 200;
+    const body = req.body;
+    // Exists then delete image and set code
+    // if(util.userHasImage(req,res)){
+    //     await deleteImage(req,res);
+    //     sendCode = 201;
+    // }
+    if(Buffer.isBuffer(req.body)){
+        Logger.info('Image in the buffer');
+
+
+    }
+    try{
+        // Gets the image from the body
+        const image = req.body.image;
+    }catch (err){
+        Logger.error(err);
+        res.status(501).send(err);
+    }
 }
 
-export {register,login,logout,viewUser,editUser}
+const deleteImage = async (req:Request, res: Response): Promise<void> => {
+    // Checks if has image otherwise 404
+    if (util.userHasImage(req, res)) {
+        const result = await images.deleteImage(req.userID)
+        if (result.affectedRows === 0) {
+            res.status(404).send('User image not found');
+        } else {
+            res.status(200).send('OK');
+        }
+    }
+}
+
+export {register,login,logout,viewUser,editUser,getImage,uploadImage,deleteImage}
