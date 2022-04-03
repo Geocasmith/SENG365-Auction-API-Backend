@@ -11,7 +11,17 @@ import fs from "mz/fs";
 import * as images from "../models/images.model";
 const imageDirectory = './storage/images/';
 
-
+const mimeTypes = {
+    "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "png": "image/png",
+    "gif": "image/gif"
+};
+const reverseMimeTypes = {
+    "image/jpeg": "jpeg",
+    "image/png": "png",
+    "image/gif": "gif"
+};
 
 const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
     // TODO PARAMS UNDEFINED BECAUSE ROUTE NOT DONE PROPERLY WITH PARAMS
@@ -26,8 +36,9 @@ const create = async (req: Request, res: Response): Promise<void> => {
     try {
         // if title, description, endDate or categoryID is missing from the body
         if(await util.bodyHasRequiredProperties(req, res, ['title', 'description', 'endDate', 'categoryId'])){
-            // if the endDate is in the past
-            if (new Date(req.body.endDate) < new Date()) {
+            // if the endDate is in the past and in ISO8601 format
+            // TODO CHECK IF IN ISO
+            if (new Date(req.body.endDate) < new Date() ) {
                 res.status(400).send("400 Bad Request, endDate is in the past");
             } else {
                 // Get categories matching ID and check if exists
@@ -38,7 +49,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
                     // Set reserve to 1 if no exists
                     const reserve = req.body.reserve===undefined ? 1 : req.body.reserve;
                     // Create a new auction
-                    const auction = await auctions.create(req.body.title, req.body.description, parseInt(req.body.categoryId, 10), req.body.endDate, reserve,req.userID);
+                    const auction = await auctions.createAuction(req.body.title, req.body.description, parseInt(req.body.categoryId, 10), req.body.endDate, reserve,req.userID);
                     res.status(201).send({"auctionId":parseInt(auction.insertId, 10)});
                 }
             }
@@ -129,7 +140,7 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
             // Gets image path from userID
             if(await util.auctionHasImage(req, res)){
                 // Gets the image path from db
-                const result = await images.getImage('user',parseInt(req.params.id,10));
+                const result = await images.getImage('auction',parseInt(req.params.id,10));
                 const path = imageDirectory+result[0].image_filename;
                 // Checks if image exists
                 if(fs.existsSync(path)) {
@@ -137,11 +148,12 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
                     const data = await fs.readFileSync(path);
                     // Gets the content type from the image path
                     const extension = result[0].image_filename.split('.').pop()
-                    // @ts-ignore
-                    res.setHeader('content-type', mimeTypes[extension]);
-                    res.status(200).send(data);
+                    if (await util.isValidImageExtension(res,extension)) { // @ts-ignore
+                        res.setHeader('content-type', mimeTypes[extension]);
+                        res.status(200).send(data);
+                    }
                 }else{
-                    res.status(404).send('User image not found');
+                    res.status(404).send('Auction image not found');
                 }
             }
         }
@@ -157,17 +169,28 @@ const uploadImage = async (req:Request, res: Response): Promise<void> => {
         const body = req.body;
         const contentType = req.header("Content-Type");
         const extension = contentType.split('/').pop();
-        const imageName = 'auction_' + req.params.id + '.' + extension;
-        await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
-        // User has image will return different code and replace the current image
-        const userImage = await images.getImage('auction',auctionId);
-        if(await images.imageExists('auction', auctionId)){
-            await images.deleteImage('auction',auctionId);
-            await images.setImage('auction',auctionId, imageName);
-            res.status(200).send('OK');
-        }else{
-            await images.setImage('auction',auctionId, imageName);
-            res.status(201).send('OK');
+
+        if (await util.isValidImageExtension(res,extension)) {
+            // Check that request body is not multipart/form-data
+            const imageName = 'auction_' + req.params.id + '.' + extension;
+            // TODO Check for empty image body
+            try {
+                await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
+            } catch (e) {
+                Logger.error(e);
+                res.status(400).send(e);
+                return;
+            }
+            // Auction has image will return different code and replace the current image
+            const auctionImage = await images.getImage('auction', auctionId);
+            if (await images.imageExists('auction', auctionId)) {
+                await images.deleteImage('auction', auctionId);
+                await images.setImage('auction', auctionId, imageName);
+                res.status(200).send('OK');
+            } else {
+                await images.setImage('auction', auctionId, imageName);
+                res.status(201).send('OK');
+            }
         }
     } catch (err){
         Logger.error(err);
@@ -190,11 +213,28 @@ const getBids = async (req: Request, res: Response): Promise<void> => {
 
 const placeBid = async (req: Request, res: Response): Promise<void> => {
     try{
-        if(await util.bodyHasRequiredProperties(req, res, ['amount'])){
+        if(await util.bodyHasRequiredProperties(req, res, ['amount']) && await util.validType( req.body.amount,'number',res)){
             if(await util.auctionExists(req, res)){
+                // Checks if the user is the owner of the auction
+                const auction = await auctions.getOne(parseInt(req.params.id, 10));
+                // Checks if the auction is yours
+                if(auction[0].seller_id === req.userID){
+                    res.status(403).send('You cant bid on closed auctions');
+                    return;
+                }
+                // checks if auction end date in the past (for closed auctions)
+                if(new Date(auction[0].end_date) < new Date()){
+                    res.status(403).send('Auction is closed');
+                    return;
+                }
+                // Gets all bids for the auction
                 const bids = await auctions.getAllBids(parseInt(req.params.id, 10));
-                const topBidAmount = bids[0].amount;
-                const bidAmount = req.body.amount;
+                // If there are bids, get the highest bid amount
+                let topBidAmount = 0;
+                if(bids.length > 0){
+                    topBidAmount = bids[0].amount;
+                }
+                const bidAmount = parseInt(req.body.amount,10);
                 if(bidAmount>topBidAmount){
                     // place the bid
                     await auctions.createBid(parseInt(req.params.id, 10), req.userID, bidAmount);

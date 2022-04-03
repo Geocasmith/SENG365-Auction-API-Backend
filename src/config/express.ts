@@ -11,9 +11,10 @@ export default () => {
     app.use(bodyParser.raw({ type: 'text/plain' }));  // for the /executeSql endpoint
     app.use(express.urlencoded({extended: true}));
     app.use(express.raw({type: '*/*'}));
-    app.use(bodyParser.raw({type: 'image/jpeg'}));
-    app.use(bodyParser.raw({type: 'image/png'}));
-    app.use(bodyParser.raw({type: 'image/gif'}));
+    // Sets the bodyparser raw limit to 50mb for type image/png
+    app.use(bodyParser.raw({ type: 'image/jpeg', limit: '50mb' }));
+    app.use(bodyParser.raw({ type: 'image/png', limit: '50mb' }));
+    app.use(bodyParser.raw({type: 'image/gif',limit: '50mb'}));
 
 
     // DEBUG (you can remove these)

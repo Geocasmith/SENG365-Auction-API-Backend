@@ -103,4 +103,19 @@ const userHasImage = async (req: Request, res: Response): Promise<boolean> => {
         return true;
     }
 };
-export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists,userExists,userHasImage,auctionHasImage}
+const isValidImageExtension = async (res:Response,extension:string): Promise<boolean> => {
+    if(extension !== 'jpg' && extension !== 'jpeg' && extension !== 'png' && extension !== 'gif'){
+        res.status(400).send('400 Bad Request, invalid image extension');
+        return false;
+    }
+    return true;
+};
+const validType = async(input:any,type:string,res:Response): Promise<boolean> => {
+    if(typeof input !== type){
+        res.status(400).send('400 Bad Request, invalid type');
+        return false;
+    }
+    return true;
+};
+
+export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists,userExists,userHasImage,auctionHasImage,isValidImageExtension,validType}

@@ -53,14 +53,14 @@ const tokenExists = async (xAuthorization: string): Promise<boolean> => {
     conn.release()
     return rows.length > 0
 };
-const passwordMatchesToken = async (xAuthorization: string, password: string): Promise<boolean> =>{
+const passwordMatchesDB = async (userId: number, password: string): Promise<boolean> =>{
     const conn = await getPool().getConnection();
-    const query = 'select * from user where auth_token = ?';
-    const [rows] = await conn.query(query,[xAuthorization]);
+    const query = 'select * from user where id = ?';
+    const [rows] = await conn.query(query,[userId]);
     if(await bcrypt.compare(password, rows[0].password)) {
         return true
     }
     return false
 };
 
-export {hash,compare,checkAuth,getUserFromToken,createAuth,tokenExists,passwordMatchesToken,getUserIDFromToken};
+export {hash,compare,checkAuth,getUserFromToken,createAuth,tokenExists,passwordMatchesDB,getUserIDFromToken};

@@ -55,7 +55,7 @@ const logout = async (token:string): Promise<any> => {
     return rows;
 };
 
-const alter = async(id:string, firstName:string, lastName:string, email:string, password:string, currentPassword: string): Promise<any> => {
+const alter = async(id:number, firstName:string, lastName:string, email:string, password:string): Promise<any> => {
     Logger.info(`Updating user in database`);
     const conn = await getPool().getConnection();
     const query = 'update user set first_name = ?, last_name = ?, email = ?, password = ? where id = ?';

@@ -114,7 +114,7 @@ const getCategory = async(id: number): Promise<any> => {
     conn.release();
     return rows;
 }
-const create = async(title: string, description: string, categoryID: number, endDate: string,reserve:number,sellerID:number): Promise<any> => {
+const createAuction = async(title: string, description: string, categoryID: number, endDate: string, reserve:number, sellerID:number): Promise<any> => {
     Logger.info(`Creating auction in db`);
     const conn = await getPool().getConnection();
     const query = 'insert into auction (title, description, category_id, end_date, reserve,seller_id) values (?,?,?,?,?,?)';
@@ -182,4 +182,4 @@ const createBid = async(auctionId:number, userId:number, amount:number): Promise
     return rows;
 
 }
-export{insert,getCategory,create,remove,getOne,getSellerfromAuctionID,getCategories,getAllBids,createBid,update,getPaginated}
+export{insert,getCategory,createAuction,remove,getOne,getSellerfromAuctionID,getCategories,getAllBids,createBid,update,getPaginated}

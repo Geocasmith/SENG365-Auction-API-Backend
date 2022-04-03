@@ -82,15 +82,43 @@ const viewUser = async (req: Request, res: Response) => {
 const editUser = async(req: Request, res: Response) => {
     Logger.http(`Patch user id: ${req.params.id}`)
     try {
-        // Checks if user is logged in (token is valid)
-        const xAuth = req.header("X-Authorization")
-        const body = req.body;
-        // check if email valid and passwords match
-        if(!(req.body.email.includes("@")) || ! await passwords.passwordMatchesToken(req.body.currentPassword, xAuth) || await users.emailExists(req.body.email)){
-            res.status(400).send('Bad request');
-            return;
+        // Gets the user from the ID
+        const user = await users.getOne(req.userID);
+        // Sets the fields from the current users details
+        let firstName = user[0].first_name;
+        let lastName = user[0].last_name;
+        let email = user[0].email;
+        let password = user[0].password;
+
+        // Changes the fields if they are in the request
+        if(req.body.firstName){
+            firstName = req.body.firstName;
         }
-        const updateResult = await users.alter(req.userID+'',req.body.firstName,req.body.lastName,req.body.email,req.body.password,req.body.currentPassword);
+        if(req.body.lastName){
+            lastName = req.body.lastName;
+        }
+        if(req.body.email){
+            // Validates email
+            if(!(req.body.email.includes("@") || await users.emailExists(req.body.email))){
+                res.status(400).send('Bad email');
+                return;
+            }
+                email = req.body.email;
+        }
+        if(req.body.password){
+            // Validates password
+            if (!req.body.currentPassword) {
+                res.status(400).send('Current password required');
+                return;
+            }else{
+                    if (!await passwords.passwordMatchesDB(req.userID, req.body.currentPassword)) {
+                        res.status(403).send('Password does not match current password');
+                        return;
+                    }
+                    password = req.body.password;
+                }
+            }
+        const updateResult = await users.alter(req.userID,firstName,lastName,email,password);
         if( updateResult.length === 0 ){
             res.status(404).send('User not found'); // sends 404 back
         }else {
@@ -140,8 +168,10 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
                         // await res.writeHead(200, {'Content-Type': mimeTypes[extension] });
                         // res.write(image);
                         // res.end();
-                        res.setHeader('content-type', mimeTypes[extension]);
-                        res.status(200).send(data);
+                        if (await util.isValidImageExtension(res,extension)) { // @ts-ignore
+                            res.setHeader('content-type', mimeTypes[extension]);
+                            res.status(200).send(data);
+                        }
                         // res.contentType(contentType);
                         // res.status(200).send(data);
 
@@ -162,16 +192,19 @@ const uploadImage = async (req:Request, res: Response): Promise<void> => {
         const body = req.body;
         const contentType = req.header("Content-Type");
         const extension = contentType.split('/').pop();
-        const imageName = 'user_' + req.userID + '.' + extension;
-        await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
-        // User has image will return different code and replace the current image
-        if(await images.imageExists('user', req.userID)){
-            await images.deleteImage('user',req.userID);
-            await images.setImage('user',req.userID, imageName);
-            res.status(200).send('OK');
-        }else{
-            await images.setImage('user',req.userID, imageName);
-            res.status(201).send('OK');
+
+        if (await util.isValidImageExtension(res,extension)) {
+            const imageName = 'user_' + req.userID + '.' + extension;
+            await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
+            // User has image will return different code and replace the current image
+            if (await images.imageExists('user', req.userID)) {
+                await images.deleteImage('user', req.userID);
+                await images.setImage('user', req.userID, imageName);
+                res.status(200).send('OK');
+            } else {
+                await images.setImage('user', req.userID, imageName);
+                res.status(201).send('OK');
+            }
         }
     } catch (err){
         Logger.error(err);

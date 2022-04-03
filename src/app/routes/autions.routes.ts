@@ -9,14 +9,14 @@ module.exports = (app: Express) => {
         .get(auctions.getAuction)
         .patch(middle.isAuthorized,middle.isAuctionOwner,auctions.update)
         .delete(middle.isAuthorized,middle.isAuctionOwner,auctions.removeAuction);
+    app.route(rootUrl + '/auctions/:id/image')
+        .get(auctions.getImage)
+        .put(middle.isAuthorized,middle.isAuctionOwner,auctions.uploadImage);
     app.route(rootUrl + '/auctions')
         .get(auctions.viewPaginated)
         .post(middle.isAuthorized,auctions.create);
     app.route(rootUrl + '/auctions/categories')
         .get(auctions.getCategories);
-    app.route(rootUrl + '/users/:id/image')
-        .get(auctions.getImage)
-        .put(middle.isAuthorized,middle.isAuctionOwner,auctions.uploadImage);
         // .put(middle.isAuthorized,auctions.update)
         // .delete(middle.isAuthorized,auctions.delete);
     app.route(rootUrl + '/auctions/:id/bids')
