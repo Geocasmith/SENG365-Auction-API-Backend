@@ -153,19 +153,20 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
 }
 const uploadImage = async (req:Request, res: Response): Promise<void> => {
     try {
+        const auctionId = parseInt(req.params.id,10);
         const body = req.body;
         const contentType = req.header("Content-Type");
         const extension = contentType.split('/').pop();
         const imageName = 'auction_' + req.params.id + '.' + extension;
         await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
         // User has image will return different code and replace the current image
-        const userImage = await images.getImage('auction',parseInt(req.params.id,10));
-        if(userImage[0].image_filename !== null){
-            await images.deleteImage('auction',parseInt(req.params.id,10));
-            await images.setImage('auction',parseInt(req.params.id,10), imageName);
+        const userImage = await images.getImage('auction',auctionId);
+        if(await images.imageExists('auction', auctionId)){
+            await images.deleteImage('auction',auctionId);
+            await images.setImage('auction',auctionId, imageName);
             res.status(200).send('OK');
         }else{
-            await images.setImage('auction',parseInt(req.params.id,10), imageName);
+            await images.setImage('auction',auctionId, imageName);
             res.status(201).send('OK');
         }
     } catch (err){

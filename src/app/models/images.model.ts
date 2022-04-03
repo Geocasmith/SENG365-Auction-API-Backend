@@ -39,5 +39,19 @@ const setImage = async (tableName:string,id: number, imageName: string): Promise
     conn.release();
     return rows;
 };
+// False if image_filename in db is null
+const imageExists = async (tableName:string,id: number): Promise<any> => {
+    Logger.info(`Checking if user image is null`);
+    const conn = await getPool().getConnection();
+    const query = 'select image_filename from '+tableName+' where id = ?';
+    const [rows] = await conn.query(query, [id]);
+    conn.release();
+    // Returns
+    if (rows[0].image_filename === null) {
+        return false;
+    } else {
+        return true;
+    }
+};
 
-export{getImage,setImage,deleteImage,hasImage}
+export{getImage,setImage,deleteImage,hasImage,imageExists}

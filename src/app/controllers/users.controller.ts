@@ -165,8 +165,7 @@ const uploadImage = async (req:Request, res: Response): Promise<void> => {
         const imageName = 'user_' + req.userID + '.' + extension;
         await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
         // User has image will return different code and replace the current image
-        const userImage = await images.getImage('user',req.userID);
-        if(userImage[0].image_filename !== null){
+        if(await images.imageExists('user', req.userID)){
             await images.deleteImage('user',req.userID);
             await images.setImage('user',req.userID, imageName);
             res.status(200).send('OK');
