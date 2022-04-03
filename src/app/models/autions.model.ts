@@ -4,41 +4,103 @@ import Logger from "../../config/logger";
 import * as passwords from "../models/passwords.model"
 
 const getPaginated = async (req:Request) => {
-    // Initialises query, joins on auction id
-    const query = 'SELECT * FROM `auction` JOIN `auction_bid` on `auction`.`id`=`auction_bid`.`auction_id`'
+    // Query where you get the maximum bid for each auction_id in auction_bid and create a new column with the user_ids of all the bidders in a list. This is joined with the auction table
+    const initialQuery = `
+        SELECT * FROM (SELECT
+            auction_id,
+            MAX(amount) AS max_bid,
+            GROUP_CONCAT(DISTINCT user_id) AS bidders
+        FROM auction_bid
+        GROUP BY auction_id)as bidder JOIN auction ON auction.id=bidder.auction_id
+    `;
+    // Create query, joins auction and auction_bid
+    // const initialQuery = 'SELECT * ' +
+    //     'FROM `auction` JOIN `auction_bid` on `auction`.`id`=`auction_bid`.`auction_id`'
+
     // Creates an empty list of strings called whereQuery and appends clauses to it if they exist
     const whereQuery = []
     // If search provided
-    if(req.params.search){
+    if(req.query.search){
         // Add search to whereQuery
-        whereQuery.push(`like '%${req.params.search}%' or description like '%${req.params.search}%'`)
+        whereQuery.push(`like '%${req.query.search}%' or description like '%${req.query.search}%'`)
     }
     // If categoryIds provided
-    if(req.params.categoryIds){
+    if(req.query.categoryIds) {
         // Gets all categories in categoryIds and writes them in a string to put in an IN statement
         let categories = ''
-        for(let i = 0; i<req.params.categoryIds.length; i++){
-            categories = categories + `${req.params.categoryIds[i]}`
-            if(i!==req.params.categoryIds.length-1){
-                categories = categories + ','
-            }
+        // if req.query.categoryIds is a number
+        if (typeof req.query.categoryIds === 'string') {
+            // Add categoryIds to categories
+            categories = req.query.categoryIds
         }
+        // TODO IF CATEGORIES IS A LIST
+        // else{
+        //     for (let i = 0; i < req.query.categoryIds.length; i++) {
+        //     // @ts-ignore
+        //         categories = categories + `${req.query.categoryIds[i]}`
+        //     // @ts-ignore
+        //         if (i !== req.query.categoryIds.length - 1) {
+        //         categories = categories + ','
+        //     }
+        // }
         whereQuery.push(`category_id in (${categories})`)
+
     }
     // If sellerId provided
-    if(req.params.sellerId){
-        whereQuery.push(`seller_id = ${req.params.sellerId}`)
+    if(req.query.sellerId){
+        whereQuery.push(`seller_id = ${req.query.sellerId}`)
     }
     // If bidderId provided
-    if(req.params.bidderId){
-        whereQuery.push(`where user_id = ${req.params.bidderId}`)
+    if(req.query.bidderId){
+        // Where bidderId is in the bidders column
+        whereQuery.push(`bidders like '%${req.query.bidderId}%'`)
+        // whereQuery.push(` user_id = ${req.query.bidderId}`)
+    }
+    // wont add a where statement if whereQuery is empty
+    const whereQueryString = whereQuery.length>0 ?' where '+ whereQuery.join(' and '):''
+    // Sort by string
+    // const sortQuery = ' order by `auction`.`end_date` desc'
+    /**
+     * Does the sorting
+     */
+    // @ts-ignore
+    const sortBy : string = req.query.sortBy;
+    let sortQuery;
+    switch (sortBy){
+        case undefined:
+            sortQuery = ' order by `end_date` desc'
+            break;
+        case 'ALPHABETICAL_ASC':
+            sortQuery = ' order by `title` asc'
+            break
+        case 'ALPHABETICAL_DESC':
+            sortQuery = ' order by `title` desc'
+            break
+        case 'BIDS_ASC':
+            sortQuery = ' order by `max_bid` asc'
+            break
+        case 'BIDS_DESC':
+            sortQuery = ' order by `max_bid` desc'
+            break
+        case 'RESERVE_ASC':
+            sortQuery = ' order by `reserve` asc'
+            break
+        case 'RESERVE_DESC':
+            sortQuery = ' order by `reserve` desc'
+            break
+        default:
+            sortQuery = ' order by `end_date` desc'
     }
 
-    // Creates the wherequery string
-    const whereQueryString = ' where '+ whereQuery.join(' and ')
-    Logger.info(query + whereQueryString)
-
+    // SQL statement to only get the rows with the highest bid for each auction
+    const highestBidQuery = `select auction_id, max(amount) as highest_bid from auction_bid group by auction_id`
+    // const highestBidQuery = `select auction_id, max(amount) as amount from auction_bid group by auction_id`
+    Logger.info(initialQuery + whereQueryString+sortQuery)
     const conn = await getPool().getConnection();
+    const [rows] = await conn.query(initialQuery + whereQueryString+sortQuery)
+    conn.release();
+
+    return rows;
 
 };
 const insert = async (username: string) : Promise<any> => {

@@ -11,7 +11,7 @@ import {getPaginated} from "../models/autions.model";
 
 const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
     // TODO PARAMS UNDEFINED BECAUSE ROUTE NOT DONE PROPERLY WITH PARAMS
-    const search = req.params.q;
+    const search = req.query.q;
     const response = await auctions.getPaginated(req);
 }
 // 400 if title, description, endDate or categoryID is missing from the body. 400 if endDate is in the past.
