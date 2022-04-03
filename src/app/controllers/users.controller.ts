@@ -14,6 +14,12 @@ const mimeTypes = {
     "png": "image/png",
     "gif": "image/gif"
 };
+const reverseMimeTypes = {
+    "image/jpeg": "jpeg",
+    "image/png": "png",
+    "image/gif": "gif"
+};
+
 import {getUserFromToken} from "../models/passwords.model";
 import * as util from "../util/utilities.util";
 import mime from "mime";
@@ -114,9 +120,9 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
     try {
         if(await util.userExists(req, res)){
             // Gets image path from userID
-            if(util.userHasImage(req,res)){
+            if(await util.userHasImage(req, res)){
                 // Gets the image path from db
-                const result = await images.getUserImages(parseInt(req.params.id,10));
+                const result = await images.getImage('user',parseInt(req.params.id,10));
                 const path = imageDirectory+result[0].image_filename;
 
                     // Checks if image exists
@@ -124,13 +130,21 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
 
                         // Gets the image from the path and sends it in the response
                         const image = await fs.readFile(path);
+                        const data = await fs.readFileSync(path);
                         // Gets the content type from the image path
                         const extension = result[0].image_filename.split('.').pop()
+                        // @ts-ignore
+                        const contentType = 'Content-Type: '+ mimeTypes[extension]
                         // Writes the image to the response
                         // @ts-ignore
-                        await res.writeHead(200, {'Content-Type': mimeTypes[extension] });
-                        res.write(image);
-                        res.end();
+                        // await res.writeHead(200, {'Content-Type': mimeTypes[extension] });
+                        // res.write(image);
+                        // res.end();
+                        res.setHeader('content-type', mimeTypes[extension]);
+                        res.status(200).send(data);
+                        // res.contentType(contentType);
+                        // res.status(200).send(data);
+
 
                     }else{
                         res.status(404).send('User image not found');
@@ -144,33 +158,54 @@ const getImage = async (req:Request, res: Response): Promise<void> => {
     }
 }
 const uploadImage = async (req:Request, res: Response): Promise<void> => {
-    // TODO check if no image of same name exists
-    Logger.info('Uploading image');
-    // let sendCode = 200;
-    const body = req.body;
-    // Exists then delete image and set code
-    // if(util.userHasImage(req,res)){
-    //     await deleteImage(req,res);
-    //     sendCode = 201;
-    // }
-    if(Buffer.isBuffer(req.body)){
-        Logger.info('Image in the buffer');
-
-
-    }
-    try{
-        // Gets the image from the body
-        const image = req.body.image;
-    }catch (err){
+    try {
+        const body = req.body;
+        const contentType = req.header("Content-Type");
+        const extension = contentType.split('/').pop();
+        const imageName = 'user_' + req.userID + '.' + extension;
+        await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
+        // User has image will return different code and replace the current image
+        const userImage = await images.getImage('user',req.userID);
+        if(userImage[0].image_filename !== null){
+            await images.deleteImage('user',req.userID);
+            await images.setImage('user',req.userID, imageName);
+            res.status(200).send('OK');
+        }else{
+            await images.setImage('user',req.userID, imageName);
+            res.status(201).send('OK');
+        }
+    } catch (err){
         Logger.error(err);
         res.status(501).send(err);
     }
 }
-
+const putImage = async (req:Request, res: Response): Promise<void> => {
+    // Gets the raw binary data of the image from the request body
+    const image = req.body.image;
+    // Gets the image name from the request body
+    const imageName = req.body.imageName;
+    // Gets the image type from the request body
+    const imageType = req.body.imageType;
+    // Gets the image size from the request body
+    const imageSize = req.body.imageSize;
+    // Gets the image path from the request body
+    const imagePath = req.body.imagePath;
+    // Gets the image id from the request body
+    const imageID = req.body.imageID;
+    // Gets the user id from the request body
+    const userID = req.body.userID;
+}
+// Deletes the user image from the db and images directory
 const deleteImage = async (req:Request, res: Response): Promise<void> => {
     // Checks if has image otherwise 404
-    if (util.userHasImage(req, res)) {
-        const result = await images.deleteImage(req.userID)
+    if (await util.userHasImage(req, res)) {
+        // Gets the image name so it can remove it from the directory
+        const imageResult = await images.getImage('user',req.userID);
+        const imageName = imageResult[0].image_filename;
+        // Removes the image from the directory
+        await fs.unlinkSync(imageDirectory + imageName);
+        // Removes sets db image_filename to null
+        const result = await images.deleteImage('user',req.userID)
         if (result.affectedRows === 0) {
             res.status(404).send('User image not found');
         } else {

@@ -9,9 +9,13 @@ export default () => {
     app.use(allowCrossOriginRequestsMiddleware);
     app.use(bodyParser.json());
     app.use(bodyParser.raw({ type: 'text/plain' }));  // for the /executeSql endpoint
-    app.use(bodyParser.urlencoded({
-        extended: true
-    }));
+    app.use(express.urlencoded({extended: true}));
+    app.use(express.raw({type: '*/*'}));
+    app.use(bodyParser.raw({type: 'image/jpeg'}));
+    app.use(bodyParser.raw({type: 'image/png'}));
+    app.use(bodyParser.raw({type: 'image/gif'}));
+
+
     // DEBUG (you can remove these)
     app.use((req, res, next) => {
         Logger.http(`##### ${req.method} ${req.path} #####`);

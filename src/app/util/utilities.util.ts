@@ -48,6 +48,7 @@ const userExists = async (req: Request, res: Response): Promise<boolean> => {
     }
     return true;
 };
+
 // Checks if the date in params is not in the past
 const dateInTheFuture = async (req: Request, res: Response): Promise<boolean> => {
     if (new Date(req.body.endDate) < new Date()) {
@@ -74,11 +75,24 @@ const categoryExists = async (req: Request, res: Response): Promise<boolean> => 
     }
     return true;
 };
-
+const auctionHasImage = async (req: Request, res: Response): Promise<boolean> => {
+    const result = await images.getImage('auction',parseInt(req.params.id, 10));
+    if (result.length === 0) { // No auction found
+        res.status(404).send('Not found');
+        return false;
+    } else {
+        // If image null in db then return 404
+        if (result[0].image_filename === null) {
+            res.status(404).send('Auction image is null');
+            return false;
+        }
+        return true;
+    }
+};
 const userHasImage = async (req: Request, res: Response): Promise<boolean> => {
-    const result = await images.getUserImages(parseInt(req.params.id, 10));
+    const result = await images.getImage('user',parseInt(req.params.id, 10));
     if (result.length === 0) { // No user found
-        res.status(404).send('No user found');
+        res.status(404).send('Not found');
         return false;
     } else {
         // If image null in db then return 404
@@ -89,4 +103,4 @@ const userHasImage = async (req: Request, res: Response): Promise<boolean> => {
         return true;
     }
 };
-export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists,userExists,userHasImage}
+export{bodyHasRequiredProperties,auctionExists,dateInTheFuture,hasNoBids,categoryExists,userExists,userHasImage,auctionHasImage}

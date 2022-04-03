@@ -5,8 +5,12 @@ import * as users from '../models/users.model';
 import * as passwords from "../models/passwords.model"
 import * as auctions from '../models/autions.model';
 import * as util from "../util/utilities.util";
-import {categoryExists} from "../util/utilities.util";
+import {auctionExists, categoryExists} from "../util/utilities.util";
 import {getPaginated} from "../models/autions.model";
+import fs from "mz/fs";
+import * as images from "../models/images.model";
+const imageDirectory = './storage/images/';
+
 
 
 const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
@@ -116,7 +120,59 @@ const getCategories = async (req: Request, res: Response): Promise<void> => {
         res.status(500).send('Error')
     }
 }
+/**
+ * Images
+ */
+const getImage = async (req:Request, res: Response): Promise<void> => {
+    try {
+        if(await util.auctionExists(req, res)){
+            // Gets image path from userID
+            if(await util.auctionHasImage(req, res)){
+                // Gets the image path from db
+                const result = await images.getImage('user',parseInt(req.params.id,10));
+                const path = imageDirectory+result[0].image_filename;
+                // Checks if image exists
+                if(fs.existsSync(path)) {
+                    // Gets the image from the path and sends it in the response
+                    const data = await fs.readFileSync(path);
+                    // Gets the content type from the image path
+                    const extension = result[0].image_filename.split('.').pop()
+                    // @ts-ignore
+                    res.setHeader('content-type', mimeTypes[extension]);
+                    res.status(200).send(data);
+                }else{
+                    res.status(404).send('User image not found');
+                }
+            }
+        }
 
+    }catch (err){
+        Logger.error(err);
+        res.status(501).send(err);
+    }
+}
+const uploadImage = async (req:Request, res: Response): Promise<void> => {
+    try {
+        const body = req.body;
+        const contentType = req.header("Content-Type");
+        const extension = contentType.split('/').pop();
+        const imageName = 'auction_' + req.params.id + '.' + extension;
+        await fs.writeFileSync(imageDirectory + imageName, body, 'binary');
+        // User has image will return different code and replace the current image
+        const userImage = await images.getImage('auction',parseInt(req.params.id,10));
+        if(userImage[0].image_filename !== null){
+            await images.deleteImage('auction',parseInt(req.params.id,10));
+            await images.setImage('auction',parseInt(req.params.id,10), imageName);
+            res.status(200).send('OK');
+        }else{
+            await images.setImage('auction',parseInt(req.params.id,10), imageName);
+            res.status(201).send('OK');
+        }
+    } catch (err){
+        Logger.error(err);
+        res.status(501).send(err);
+    }
+}
 /**
  * BIDS
  */
@@ -154,4 +210,4 @@ const placeBid = async (req: Request, res: Response): Promise<void> => {
 }
 
 
-export {create,viewPaginated,getAuction,update,getCategories,getBids,placeBid,removeAuction}
+export {create,viewPaginated,getAuction,update,getCategories,getBids,placeBid,removeAuction,getImage,uploadImage};

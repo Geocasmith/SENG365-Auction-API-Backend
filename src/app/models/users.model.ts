@@ -71,5 +71,13 @@ const emailExists = async (email: string): Promise<boolean> => {
     conn.release();
     return rows.length > 0;
 };
+const setUserImage = async (id: number, imageName: string): Promise<any> => {
+    Logger.info(`Setting user image name`);
+    const conn = await getPool().getConnection();
+    const query = 'update user set image_filename = ? where id = ?';
+    const [rows] = await conn.query(query, [imageName, id]);
+    conn.release();
+    return rows;
+};
 
-export {getOne, insert, login, logout,emailExists,alter}
+export {getOne, insert, login, logout,emailExists,alter,setUserImage}
