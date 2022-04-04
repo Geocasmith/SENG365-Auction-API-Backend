@@ -26,7 +26,29 @@ const reverseMimeTypes = {
 const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
     // TODO PARAMS UNDEFINED BECAUSE ROUTE NOT DONE PROPERLY WITH PARAMS
     const search = req.query.q;
-    const response = await auctions.getPaginated(req);
+    const result = await auctions.getPaginated(req);
+    // Converts the comma separated string in bidders into an array
+    // tslint:disable-next-line:forin
+    for(const row in result.rows){
+        result.rows[row].bidders = result.rows[row].bidders.split(',');
+    }
+    // If bidderID in body, filter to rows with bidderID in bidders
+    if(req.body.bidderID){
+        result.rows = result.rows.filter((row: { bidders: string | any[]; }) => row.bidders.includes(req.body.bidderID));
+    }
+    // Create new object of type auctions
+    // const auction = result.rows.map((row: { id: number; title: string; description: string; category: string; image: string; bidders: string | any[]; }) => {
+    //     return {
+    //         id: row.id,
+    //         title: row.title,
+    //         description: row.description,
+    //         category: row.category,
+    //         image: row.image,
+    //     }
+    // });
+
+   // Sends the result back with 200 code
+    res.status(200).send(result);
 }
 // 400 if title, description, endDate or categoryID is missing from the body. 400 if endDate is in the past.
 // 401 if the user is not logged in.

@@ -3,19 +3,32 @@ import {getPool} from "../../config/db";
 import Logger from "../../config/logger";
 import * as passwords from "../models/passwords.model"
 
-const getPaginated = async (req:Request) => {
+const getPaginated = async (req:Request):Promise<any> => {
     // Query where you get the maximum bid for each auction_id in auction_bid and create a new column with the user_ids of all the bidders in a list. This is joined with the auction table
     const initialQuery = `
-        SELECT * FROM (SELECT
+        SELECT auction_id as auctionId, title, reserve, seller_id as sellerId, category_id as categoryId,
+        first_name as sellerFirstName, last_name as sellerLastName, end_date as endDate,numbids,highestBid,bidders
+         FROM (SELECT
             auction_id,
-            MAX(amount) AS max_bid,
+            MAX(amount) AS highestBid,COUNT(amount) as numbids,
             GROUP_CONCAT(DISTINCT user_id) AS bidders
         FROM auction_bid
-        GROUP BY auction_id)as bidder JOIN auction ON auction.id=bidder.auction_id
-    `;
+        GROUP BY auction_id)as bidder JOIN auction ON auction.id=bidder.auction_id JOIN user ON seller_id=user.id `
+    // If bidderId provided
+    // if(req.query.bidderId){
+    //     // Changes query to only get auctions with that bidder
+    //     initialQuery = `SELECT * FROM (SELECT
+    //         auction_id,
+    //         MAX(amount) AS max_bid,
+    //         GROUP_CONCAT(DISTINCT user_id) AS bidders
+    //     FROM (SELECT * from auction_bid WHERE user_id=${req.query.bidderId})AS bidsbyuser
+    //     GROUP BY auction_id)as bidder JOIN auction ON auction.id=bidder.auction_id `
+    //
+    // }
     // Create query, joins auction and auction_bid
     // const initialQuery = 'SELECT * ' +
     //     'FROM `auction` JOIN `auction_bid` on `auction`.`id`=`auction_bid`.`auction_id`'
+    // Query to only show auction_ids that have a certain bidder
 
     // Creates an empty list of strings called whereQuery and appends clauses to it if they exist
     const whereQuery = []
@@ -49,12 +62,6 @@ const getPaginated = async (req:Request) => {
     // If sellerId provided
     if(req.query.sellerId){
         whereQuery.push(`seller_id = ${req.query.sellerId}`)
-    }
-    // If bidderId provided
-    if(req.query.bidderId){
-        // Where bidderId is in the bidders column
-        whereQuery.push(`bidders like '%${req.query.bidderId}%'`)
-        // whereQuery.push(` user_id = ${req.query.bidderId}`)
     }
     // wont add a where statement if whereQuery is empty
     const whereQueryString = whereQuery.length>0 ?' where '+ whereQuery.join(' and '):''
