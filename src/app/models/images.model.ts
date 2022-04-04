@@ -1,5 +1,6 @@
 import {getPool} from "../../config/db";
 import Logger from "../../config/logger";
+
 const imageDirectory = './storage/images/';
 
 const getImage = async(tableName:string,userId:number): Promise<any> => {

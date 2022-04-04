@@ -1,7 +1,6 @@
 import {getPool} from "../../config/db";
 import Logger from "../../config/logger";
 import * as passwords from "../models/passwords.model"
-import {ResultSetHeader} from "mysql2";
 import bcrypt from "bcrypt";
 
 const getOne = async (id: number): Promise<User[]> => {

@@ -2,12 +2,11 @@ import {getPool} from "../../config/db";
 import fs from 'mz/fs';
 import * as defaultUsers from "../resources/default_users.json"
 import * as passwords from "../models/passwords.model"
+import Logger from "../../config/logger";
+import {OkPacket, ResultSetHeader, RowDataPacket} from "mysql2";
 
 const imageDirectory = './storage/images/';
 const defaultPhotoDirectory = './storage/default/';
-
-import Logger from "../../config/logger";
-import {OkPacket, ResultSetHeader, RowDataPacket} from "mysql2";
 
 const resetDb = async (): Promise<any> => {
     const promises = [];

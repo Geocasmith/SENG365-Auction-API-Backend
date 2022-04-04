@@ -1,9 +1,6 @@
 import {Request, Response} from "express";
 import * as auctions from '../models/autions.model';
 import * as users from '../models/users.model';
-
-
-import Logger from "../../config/logger";
 import * as images from "../models/images.model";
 
 // Goes through the request body and checks if all of the required fields are present. Required fields are given in the parameter.

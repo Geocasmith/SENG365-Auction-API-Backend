@@ -1,7 +1,6 @@
 import {Express} from "express";
 import {rootUrl} from "./base.routes"
 import * as auth from "../middleware/authorization.middleware"
-import * as cors from "../middleware/cors.middleware"
 
 import * as users from '../controllers/users.controller';
 

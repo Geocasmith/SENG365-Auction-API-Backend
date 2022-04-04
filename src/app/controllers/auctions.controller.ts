@@ -1,14 +1,11 @@
 import {Request, Response} from "express";
 import Logger from '../../config/logger';
-import * as auth from '../controllers/authorization.controller'
 import * as users from '../models/users.model';
-import * as passwords from "../models/passwords.model"
 import * as auctions from '../models/autions.model';
 import * as util from "../util/utilities.util";
-import {auctionExists, categoryExists} from "../util/utilities.util";
-import {getPaginated} from "../models/autions.model";
 import fs from "mz/fs";
 import * as images from "../models/images.model";
+
 const imageDirectory = './storage/images/';
 
 const mimeTypes = {
@@ -31,24 +28,10 @@ const viewPaginated = async (req: Request, res: Response): Promise<void> =>{
     // tslint:disable-next-line:forin
     for(const row in result.rows){
         result.rows[row].bidders = result.rows[row].bidders.split(',');
+        // if the row's bidders does not include bidderID then remove it
     }
-    // If bidderID in body, filter to rows with bidderID in bidders
-    if(req.body.bidderID){
-        result.rows = result.rows.filter((row: { bidders: string | any[]; }) => row.bidders.includes(req.body.bidderID));
-    }
-    // Create new object of type auctions
-    // const auction = result.rows.map((row: { id: number; title: string; description: string; category: string; image: string; bidders: string | any[]; }) => {
-    //     return {
-    //         id: row.id,
-    //         title: row.title,
-    //         description: row.description,
-    //         category: row.category,
-    //         image: row.image,
-    //     }
-    // });
-
-   // Sends the result back with 200 code
-    res.status(200).send(result);
+    // TODO DOES NOT FILTER BY BIDDER PROPERLY
+    res.status(200).send({"auctions":result, "count":result.length});
 }
 // 400 if title, description, endDate or categoryID is missing from the body. 400 if endDate is in the past.
 // 401 if the user is not logged in.
@@ -85,8 +68,10 @@ const update = async (req: Request, res: Response): Promise<void> => {
     Logger.info('Updating auction db');
     try{
         if(await util.bodyHasRequiredProperties(req, res, ['title', 'description', 'endDate', 'categoryId','reserve'])){
+
             // Checks if request is valid
             if(await util.dateInTheFuture(req,res) && await util.hasNoBids(req,res) && await util.categoryExists(req,res)){
+
                 // Set the reserve
                 const reserve = req.body.reserve===undefined ? 1 : req.body.reserve;
                 // Update the auction

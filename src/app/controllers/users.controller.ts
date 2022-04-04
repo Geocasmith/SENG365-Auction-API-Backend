@@ -5,6 +5,8 @@ import * as images from '../models/images.model';
 import * as passwords from "../models/passwords.model"
 import randtoken from 'rand-token';
 import fs from 'mz/fs';
+import * as util from "../util/utilities.util";
+
 const imageDirectory = './storage/images/';
 
 
@@ -19,10 +21,6 @@ const reverseMimeTypes = {
     "image/png": "png",
     "image/gif": "gif"
 };
-
-import {getUserFromToken} from "../models/passwords.model";
-import * as util from "../util/utilities.util";
-import mime from "mime";
 
 // TODO check if user exists
 const register = async (req: Request, res: Response) => {
